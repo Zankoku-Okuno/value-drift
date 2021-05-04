@@ -1,7 +1,9 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE UnboxedTuples #-}
 
 {-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}
 
@@ -16,8 +18,8 @@ module Data.SymbolArray
 
 import Prelude hiding (read)
 
-import Control.Monad (void, when)
 import Control.Monad.Primitive (PrimMonad, PrimState)
+import Data.Primitive (Prim)
 import Data.Primitive.Contiguous (Array, MutableArray)
 import Data.Ref (Ref, PrimRef)
 
@@ -29,6 +31,7 @@ import qualified Data.Ref as Ref
 -- the idea is that each (group of related) table(s) gets its own phantom type,
 -- which is shared by both the table and its symbols, and they must match for a lookup to compile
 newtype Symbol for = Symbol { _unSymbol :: Int }
+  deriving(Prim)
 
 -- a fully-initialized symtab for use in accessing game data based on numeric ids
 -- FIXME I should probly use something a bit more strict/performant than 'Array'
@@ -73,11 +76,3 @@ freeze mut = do
 
 extern :: Symtab for a -> Symbol for -> a
 extern tab sym = Arr.index tab._unTable sym._unSymbol
-
-
-main :: IO ()
-main = do
-  mt <- newSymtab @() @Int 0
-  x <- intern mt 4004
-  t <- freeze mt
-  print $ extern t x
